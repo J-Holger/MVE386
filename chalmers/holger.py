@@ -57,6 +57,7 @@ def load_data(file_path_integrated, file_path_master, max_deg, min_deg):
         data['azi'] = data['azi'][azimuthal_indices]
         data['I'] = fh[items['I']][()][:, :, non_zero_q]
         data['I'] = data['I'][:, azimuthal_indices, :]
+        data['I'] = np.sum(data['I'] * data['norm'][...], axis=1) / np.sum(data['norm'], axis=0)[...]
 
     # Master file
     items = {
@@ -70,6 +71,23 @@ def load_data(file_path_integrated, file_path_master, max_deg, min_deg):
                 data[key] = fh[name][()]
 
     # The command used has information on the snake scan performed, we use it.
-    data['shape'] = (int((str(data['title']).split(' '))[8]) + 1, int((str(data['title']).split(' '))[4]))
+    shape = (int((str(data['title']).split(' '))[8]) + 1, int((str(data['title']).split(' '))[4]))
+    data['shape'] = shape
+
+    num_rows = shape[0]
+    num_cols = shape[1]
+    middle_row_first_col = int(shape[0] / 2) * num_cols
+    middle_row_mean = np.mean(data['I'][middle_row_first_col:middle_row_first_col+num_cols, :], axis=(0, 1))
+    background_pixels = np.empty(0)
+    background_mean = 0
+    number_of_background_rows = 0
+    for row in range(num_rows):
+        row_mean = np.mean(data['I'][row*num_cols:row*num_cols+num_cols, :], axis=(0, 1))
+        if middle_row_mean - row_mean > 3:
+            background_pixels = np.append(background_pixels, np.array([i + (row * num_cols) for i in range(num_cols)]), axis=0)
+            number_of_background_rows += 1
+            background_mean += row_mean
+    data['background_pixels'] = background_pixels
+    data['background_mean'] = background_mean / number_of_background_rows
 
     return data
