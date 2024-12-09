@@ -78,7 +78,7 @@ def load_data(file_path_integrated, file_path_master, max_deg, min_deg):
     num_cols = shape[1]
     middle_row_first_col = int(shape[0] / 2) * num_cols
     middle_row_mean = np.mean(data['I'][middle_row_first_col:middle_row_first_col+num_cols, :], axis=(0, 1))
-    background_pixels = np.empty(0)
+    background_pixels = np.empty(0, dtype=np.int8)
     background_mean = 0
     number_of_background_rows = 0
     for row in range(num_rows):
@@ -91,3 +91,10 @@ def load_data(file_path_integrated, file_path_master, max_deg, min_deg):
     data['background_mean'] = background_mean / number_of_background_rows
 
     return data
+
+def reshape_I(data):
+    I = data['I'].reshape((data['shape'][0],data['shape'][1],data['q'].shape[0]))
+    I_flipped = np.copy(I)
+    #Since it is a snake scan, we need to flip every other row.
+    I_flipped[1::2,:,:] = I_flipped[1::2,::-1,:,:]
+    return I_flipped
